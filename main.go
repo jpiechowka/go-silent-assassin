@@ -1,15 +1,26 @@
 package main
 
 import (
-	"os"
+	"log"
 
-	"github.com/jpiechowka/go-silent-assassin/cmd"
+	"github.com/jpiechowka/go-silent-assassin/loader"
 )
 
 func main() {
-	if err := cmd.Execute(); err != nil {
-		os.Exit(1)
+	// if err := cmd.Execute(); err != nil {
+	// 	os.Exit(1)
+	// }
+	//
+	// os.Exit(0)
+
+	// TODO: delete after testing
+	l, err := loader.NewLoader()
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	os.Exit(0)
+	err = l.Execute()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
