@@ -85,7 +85,6 @@ func (b *Builder) downloadPe2ShcExecutable(downloadDir string) error {
 	log.Printf("[+] Saving downloaded executable to %s", pe2shcExePath)
 	_, err = io.Copy(pe2shcExeFile, resp.Body)
 
-	// Close the pe2shc file early (without defer block / statement) so that it can be executed
 	if err := pe2shcExeFile.Close(); err != nil {
 		return err
 	}
@@ -99,6 +98,7 @@ func (b *Builder) downloadPe2ShcExecutable(downloadDir string) error {
 
 func (b *Builder) convertPEToShellcode(inputFilePath string, outputFilePath string, workspace string) error {
 	log.Printf("[+] Moving input file %s to temp directory as in.exe", inputFilePath)
+
 	input, err := os.ReadFile(inputFilePath)
 	if err != nil {
 		return err
@@ -109,6 +109,7 @@ func (b *Builder) convertPEToShellcode(inputFilePath string, outputFilePath stri
 	}
 
 	log.Println("[+] Executing pe2shc to convert PE file to shellcode so that it can be injected")
+
 	cmd := exec.Command("./pe2shc.exe", "in.exe", "out.exe")
 	cmd.Dir = workspace
 
