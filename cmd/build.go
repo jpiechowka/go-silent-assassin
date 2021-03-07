@@ -1,28 +1,33 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"log"
 
-const (
-	defaultIsVerbose = false
+	"github.com/spf13/cobra"
+
+	"github.com/jpiechowka/go-silent-assassin/builder"
 )
 
 var (
-	isVerbose bool
-
 	buildCommand = &cobra.Command{
 		Use:   "build",
 		Short: "Builds the executable",
 		Long:  `TODO`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return buildCmd()
+		Run: func(cmd *cobra.Command, args []string) {
+			buildCmd()
 		},
 	}
 )
 
 func init() {
-	buildCommand.Flags().BoolVarP(&isVerbose, "verbose", "v", defaultIsVerbose, "enables verbose logging")
+	// TODO: Add flags
 }
 
-func buildCmd() error {
-	return nil
+func buildCmd() {
+	b := builder.NewBuilder()
+	err := b.BuildExecutable("calc.exe", "out.exe") // TODO: Make configurable
+	if err != nil {
+		log.Printf("[ERROR] Error: %s", err)
+		return
+	}
 }
