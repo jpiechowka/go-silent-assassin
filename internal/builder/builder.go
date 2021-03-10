@@ -20,6 +20,7 @@ const (
 	tempPe2shcInputFileName  = "in.exe"
 	tempPe2shcOutputFileName = "out.exe"
 	loaderMainFileName       = "main.go"
+	tempLoaderOutFileName    = "loader.exe"
 )
 
 type Builder struct {
@@ -53,9 +54,13 @@ func (b *Builder) BuildExecutable(inputFilePath string, outputFilePath string) e
 		return err
 	}
 
-	// if err := b.deleteWorkspace(workspacePath); err != nil {
-	// 	return err
-	// }
+	if err := b.moveCompiledLoader(workspacePath, outputFilePath); err != nil {
+		return err
+	}
+
+	if err := b.deleteWorkspace(workspacePath); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -135,7 +140,14 @@ func (b *Builder) convertPEToShellcode(inputFilePath string, workspace string) e
 func (b *Builder) compileLoader(workspace string) error {
 	log.Printf("[+] Preparing loader")
 
+	loaderGoModPath := filepath.Join(workspace, "go.mod")
 	loaderPath := filepath.Join(workspace, loaderMainFileName)
+
+	log.Printf("[+] Generating and saving go.mod file for the loader %s", loaderGoModPath)
+
+	if err := os.WriteFile(loaderGoModPath, b.codeGenerator.GenerateLoaderGoModFile(), 0666); err != nil {
+		return err
+	}
 
 	log.Printf("[+] Generating and saving loader code to %s", loaderPath)
 
@@ -143,19 +155,47 @@ func (b *Builder) compileLoader(workspace string) error {
 		return err
 	}
 
-	log.Printf("[+] Executing Go compiler to compile the loader with shellcode")
+	log.Println("[+] Running go mod tidy command")
 
-	// TODO: Strip debugging symbols
-	cmd := exec.Command("go", "build")
-	cmd.Dir = workspace
+	modCmd := exec.Command("go", "mod", "tidy")
+	modCmd.Dir = workspace
 
-	cmdCombinedOut, err := cmd.CombinedOutput()
+	modCmdCombinedOut, err := modCmd.CombinedOutput()
 	if err != nil {
-		log.Printf("[ERROR] Go build command output:\n\n%s\n", cmdCombinedOut)
+		log.Printf("[ERROR] Go mod tidy output:\n\n%s\n", modCmdCombinedOut)
 		return err
 	}
 
-	log.Printf("[+] Go build command output:\n\n%s\n", cmdCombinedOut)
+	log.Printf("[+] Executing Go compiler to compile the loader with shellcode")
+
+	// TODO: Strip debugging symbols
+	buildCmd := exec.Command("go", "build", "-a", "-o", tempLoaderOutFileName)
+	buildCmd.Dir = workspace
+
+	buildCmdCombinedOut, err := buildCmd.CombinedOutput()
+	if err != nil {
+		log.Printf("[ERROR] Go build command output:\n\n%s\n", buildCmdCombinedOut)
+		return err
+	}
+
+	log.Printf("[+] Go build command output:\n\n%s\n", buildCmdCombinedOut)
+	log.Printf("[+] Loader has been compiled. Output file: %s", tempLoaderOutFileName)
+
+	return nil
+}
+
+func (b *Builder) moveCompiledLoader(workspace string, outputFilePath string) error {
+	compiledLoaderPath := filepath.Join(workspace, tempLoaderOutFileName)
+	log.Printf("[+] Moving compiled loader from %s to %s", compiledLoaderPath, outputFilePath)
+
+	compiledLoaderData, err := os.ReadFile(compiledLoaderPath)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(outputFilePath, compiledLoaderData, 0666); err != nil {
+		return err
+	}
 
 	return nil
 }

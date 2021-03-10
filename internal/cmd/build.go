@@ -25,7 +25,7 @@ func init() {
 
 func buildCmd() {
 	b := builder.NewBuilder()
-	err := b.BuildExecutable("calc.exe", "out.exe") // TODO: Make configurable
+	err := b.BuildExecutable("calc.exe", "compiled-loader.exe") // TODO: Make configurable
 	if err != nil {
 		log.Printf("[ERROR] Error: %s", err)
 		return
