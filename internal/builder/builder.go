@@ -168,8 +168,7 @@ func (b *Builder) compileLoader(workspace string) error {
 
 	log.Printf("[+] Executing Go compiler to compile the loader with shellcode")
 
-	// TODO: Strip debugging symbols
-	buildCmd := exec.Command("go", "build", "-a", "-o", tempLoaderOutFileName, "-ldflags", "-H=windowsgui")
+	buildCmd := exec.Command("go", "build", "-trimpath", "-a", "-o", tempLoaderOutFileName, "-ldflags", "-w -s -H=windowsgui")
 	buildCmd.Dir = workspace
 
 	buildCmdCombinedOut, err := buildCmd.CombinedOutput()
