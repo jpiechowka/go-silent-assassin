@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/jpiechowka/go-silent-assassin/cmd"
+	"github.com/jpiechowka/go-silent-assassin/internal/cmd"
 )
 
 func main() {

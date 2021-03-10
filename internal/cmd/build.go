@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jpiechowka/go-silent-assassin/builder"
+	"github.com/jpiechowka/go-silent-assassin/internal/builder"
 )
 
 var (

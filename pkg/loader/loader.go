@@ -13,7 +13,6 @@ type Loader struct {
 	kernel32dll *windows.LazyDLL
 }
 
-// Pass shellcode
 func NewLoader(shellcode []byte) *Loader {
 	return &Loader{
 		shellcode:   shellcode,
